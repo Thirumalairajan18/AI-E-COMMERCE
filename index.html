@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopAssist — AI E-Commerce Support Agent</title>
+<style>
+  :root{
+    --ink:#181425;
+    --paper:#F6F4EF;
+    --panel:#FFFFFF;
+    --line:#E4E0D6;
+    --indigo:#3B2FC9;
+    --indigo-dim:#EDEBFB;
+    --mint:#1F9E7C;
+    --mint-dim:#E7F5EF;
+    --amber:#B5750B;
+    --amber-dim:#FBF1DE;
+    --muted:#6F6A62;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:'Iowan Old Style','Georgia',serif;
+    background:var(--paper);
+    color:var(--ink);
+    display:flex;
+    justify-content:center;
+  }
+  .app{
+    width:100%;
+    max-width:860px;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    background:var(--panel);
+    border-left:1px solid var(--line);
+    border-right:1px solid var(--line);
+  }
+
+  /* Header */
+  .hdr{
+    padding:18px 24px;
+    background:var(--ink);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-shrink:0;
+  }
+  .hdr-left{display:flex;align-items:center;gap:12px;}
+  .mark{
+    width:36px;height:36px;border-radius:10px;
+    background:var(--indigo);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-weight:700;font-size:15px;letter-spacing:-0.5px;
+    flex-shrink:0;
+  }
+  .hdr-title{font-family:'Helvetica Neue',Arial,sans-serif;}
+  .hdr-title .name{font-size:16px;font-weight:600;line-height:1.2;}
+  .hdr-title .sub{font-size:12px;color:#B9B5CE;display:flex;align-items:center;gap:6px;margin-top:2px;}
+  .dot{width:6px;height:6px;border-radius:50%;background:#4ADE80;display:inline-block;}
+  .hdr-btn{
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    background:transparent;border:1px solid #3A3550;color:#CFCBE0;
+    padding:7px 12px;border-radius:7px;font-size:12px;cursor:pointer;
+  }
+  .hdr-btn:hover{border-color:#5B5578;color:#fff;}
+
+  /* Quick chips */
+  .chips{
+    display:flex;gap:8px;padding:12px 24px;flex-wrap:wrap;
+    border-bottom:1px solid var(--line);
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    flex-shrink:0;
+  }
+  .chip{
+    font-size:12.5px;padding:6px 12px;border-radius:20px;
+    border:1px solid var(--line);background:var(--paper);color:var(--ink);
+    cursor:pointer;
+  }
+  .chip:hover{border-color:var(--indigo);color:var(--indigo);}
+
+  /* Chat area */
+  .chat{
+    flex:1;overflow-y:auto;padding:22px 24px;
+    display:flex;flex-direction:column;gap:14px;
+  }
+  .row{display:flex;flex-direction:column;max-width:80%;}
+  .row.user{align-self:flex-end;align-items:flex-end;}
+  .row.agent{align-self:flex-start;align-items:flex-start;}
+
+  .bubble{
+    padding:11px 15px;border-radius:14px;font-size:15px;line-height:1.55;
+    white-space:pre-wrap;
+  }
+  .row.user .bubble{background:var(--indigo);color:#fff;border-bottom-right-radius:4px;}
+  .row.agent .bubble{background:var(--paper);border:1px solid var(--line);border-bottom-left-radius:4px;}
+
+  .tool-chip{
+    font-family:'SF Mono','Menlo',monospace;
+    font-size:11.5px;color:var(--indigo);
+    background:var(--indigo-dim);
+    padding:5px 10px;border-radius:6px;
+    margin-bottom:4px;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .tool-chip .spin{
+    width:8px;height:8px;border-radius:50%;
+    border:1.5px solid var(--indigo);border-top-color:transparent;
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .card{
+    border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    margin-top:4px;min-width:260px;
+  }
+  .card-hd{
+    font-size:11px;letter-spacing:.3px;text-transform:uppercase;
+    padding:8px 13px;color:var(--muted);border-bottom:1px solid var(--line);
+    background:var(--paper);font-weight:600;
+  }
+  .card-body{padding:10px 13px;display:flex;flex-direction:column;gap:6px;}
+  .card-line{display:flex;justify-content:space-between;font-size:13.5px;}
+  .card-line b{font-weight:600;}
+  .status-pill{
+    font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:20px;
+  }
+  .status-pill.ok{background:var(--mint-dim);color:var(--mint);}
+  .status-pill.pending{background:var(--amber-dim);color:var(--amber);}
+
+  .prod-grid{display:flex;gap:10px;overflow-x:auto;margin-top:4px;padding-bottom:2px;}
+  .prod-card{
+    min-width:150px;border:1px solid var(--line);border-radius:10px;
+    padding:10px;font-family:'Helvetica Neue',Arial,sans-serif;flex-shrink:0;
+  }
+  .prod-card.best{border-color:var(--indigo);background:var(--indigo-dim);}
+  .prod-thumb{
+    height:64px;border-radius:7px;background:linear-gradient(135deg,#DCD8F5,#C6C0EA);
+    margin-bottom:8px;
+  }
+  .prod-name{font-size:12.5px;font-weight:600;line-height:1.3;}
+  .prod-price{font-size:13px;color:var(--mint);font-weight:700;margin-top:3px;}
+  .prod-tag{font-size:9.5px;color:var(--indigo);font-weight:700;letter-spacing:.4px;margin-bottom:5px;}
+
+  .think{
+    align-self:flex-start;display:flex;gap:5px;padding:10px 15px;
+    background:var(--paper);border:1px solid var(--line);border-radius:14px;
+  }
+  .think span{width:6px;height:6px;background:var(--muted);border-radius:50%;animation:bounce 1.1s infinite;}
+  .think span:nth-child(2){animation-delay:.15s;}
+  .think span:nth-child(3){animation-delay:.3s;}
+  @keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4;}30%{transform:translateY(-4px);opacity:1;}}
+
+  /* Input */
+  .composer{
+    display:flex;gap:10px;padding:16px 24px;border-top:1px solid var(--line);
+    flex-shrink:0;font-family:'Helvetica Neue',Arial,sans-serif;
+  }
+  .composer input{
+    flex:1;border:1px solid var(--line);border-radius:22px;padding:11px 17px;
+    font-size:14.5px;font-family:inherit;outline:none;background:var(--paper);
+  }
+  .composer input:focus{border-color:var(--indigo);}
+  .composer button{
+    width:42px;height:42px;border-radius:50%;border:none;background:var(--indigo);
+    color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;
+  }
+  .composer button:disabled{background:#C9C5DE;cursor:default;}
+
+  .memory-note{
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:var(--muted);
+    text-align:center;padding:6px 0 0;
+  }
+
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-thumb{background:#DBD7CB;border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="mark">SA</div>
+      <div class="hdr-title">
+        <div class="name">ShopAssist — Support Agent</div>
+        <div class="sub"><span class="dot"></span>Online · Tool Calling + Memory</div>
+      </div>
+    </div>
+    <button class="hdr-btn" id="resetBtn">Reset memory</button>
+  </div>
+
+  <div class="chips" id="chips">
+    <div class="chip" data-msg="Where is my order ORD-48210?">Order status</div>
+    <div class="chip" data-msg="I want to return my order ORD-30056, the item doesn't fit.">Start a return</div>
+    <div class="chip" data-msg="I need a lightweight laptop bag under ₹2000 for my daily commute.">Get a recommendation</div>
+    <div class="chip" data-msg="Tell me about the FeatherLite Sling Laptop Bag.">Product info</div>
+  </div>
+
+  <div class="chat" id="chat"></div>
+
+  <div class="composer">
+    <input id="input" type="text" placeholder="Type your message…" autocomplete="off">
+    <button id="sendBtn">➤</button>
+  </div>
+  <div class="memory-note" id="memNote"></div>
+</div>
+
+<script>
+/* =========================================================
+   LOCAL DEMO VERSION
+   Runs directly in VS Code / browser with no API key.
+   It demonstrates the same Agentic AI concepts:
+   Intent -> Memory -> Tool Selection -> Tool Execution -> Response
+   ========================================================= */
+
+const ORDERS = {
+  "ORD-48210": {
+    item: "FeatherLite Sling Laptop Bag",
+    status: "Out for delivery",
+    expected: "Today, 7:00 PM",
+    placed: "2026-09-05",
+    price: 1299,
+    returnEligible: true
+  },
+  "ORD-77341": {
+    item: "Urban Commuter Laptop Bag",
+    status: "Shipped",
+    expected: "Sep 12, 2026",
+    placed: "2026-09-06",
+    price: 1499,
+    returnEligible: true
+  },
+  "ORD-30056": {
+    item: "Wireless Earbuds X200",
+    status: "Delivered",
+    expected: "Delivered Sep 3, 2026",
+    placed: "2026-08-28",
+    price: 2199,
+    returnEligible: true
+  },
+  "ORD-90212": {
+    item: "Trailblazer Running Shoes",
+    status: "Processing",
+    expected: "Sep 15, 2026",
+    placed: "2026-09-08",
+    price: 3299,
+    returnEligible: false
+  }
+};
+
+const PRODUCTS = [
+  {
+    name: "FeatherLite Sling Laptop Bag",
+    category: "bags",
+    price: 1299,
+    rating: 4.7,
+    tags: ["lightweight","commute","laptop","sling"],
+    desc: "A 500g water-resistant sling bag with a padded 14-inch laptop sleeve, built for daily commuting."
+  },
+  {
+    name: "Urban Commuter Laptop Bag",
+    category: "bags",
+    price: 1499,
+    rating: 4.3,
+    tags: ["laptop","commute","durable"],
+    desc: "A structured backpack-style laptop bag with reinforced straps for everyday office commutes."
+  },
+  {
+    name: "DailyPack Sling Bag",
+    category: "bags",
+    price: 1799,
+    rating: 4.1,
+    tags: ["sling","casual"],
+    desc: "A casual sling bag with multiple compartments, suited for short trips and daily errands."
+  },
+  {
+    name: "Wireless Earbuds X200",
+    category: "audio",
+    price: 2199,
+    rating: 4.4,
+    tags: ["audio","wireless","commute"],
+    desc: "Wireless earbuds with 24-hour battery life and active noise cancellation."
+  },
+  {
+    name: "Trailblazer Running Shoes",
+    category: "shoes",
+    price: 3299,
+    rating: 4.5,
+    tags: ["running","shoes","fitness"],
+    desc: "Lightweight running shoes with breathable mesh and cushioned soles for daily runs."
+  }
+];
+
+/* -------------------------
+   Browser memory
+   ------------------------- */
+const MEMORY_KEY = "shopassist_memory";
+const HISTORY_KEY = "shopassist_history";
+
+function loadMemory() {
+  try {
+    return JSON.parse(localStorage.getItem(MEMORY_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveMemory(mem) {
+  localStorage.setItem(MEMORY_KEY, JSON.stringify(mem));
+  renderMemoryNote(mem);
+}
+
+function renderMemoryNote(mem) {
+  const keys = Object.keys(mem || {});
+  document.getElementById("memNote").textContent =
+    keys.length
+      ? `Remembering: ${keys.map(k => `${k} = ${mem[k]}`).join(" · ")}`
+      : "";
+}
+
+function loadHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory() {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(uiHistory));
+}
+
+/* -------------------------
+   Tool implementations
+   ------------------------- */
+async function runTool(name, input) {
+  await new Promise(resolve => setTimeout(resolve, 450));
+
+  if (name === "get_order_status") {
+    const id = String(input.order_id || "").toUpperCase();
+    const order = ORDERS[id];
+    if (!order) return { error: `No order found with ID ${id}.` };
+    return { order_id: id, ...order };
+  }
+
+  if (name === "initiate_return") {
+    const id = String(input.order_id || "").toUpperCase();
+    const order = ORDERS[id];
+    if (!order) return { error: `No order found with ID ${id}.` };
+
+    if (!order.returnEligible) {
+      return {
+        eligible: false,
+        message: "This order is still processing and isn't eligible for return yet."
+      };
+    }
+
+    return {
+      eligible: true,
+      order_id: id,
+      item: order.item,
+      reason: input.reason,
+      steps: [
+        "Select the item to return",
+        "Confirm the return reason",
+        "Choose pickup or a nearby drop-off point",
+        "Refund is issued after the item is received"
+      ],
+      window: "Returns accepted within 7 days of delivery, item unused with original packaging."
+    };
+  }
+
+  if (name === "recommend_products") {
+    const q = String(input.query || "").toLowerCase();
+    let matches = PRODUCTS.filter(p =>
+      p.tags.some(t => q.includes(t)) ||
+      q.includes(p.category) ||
+      p.name.toLowerCase().split(" ").some(w => w.length > 3 && q.includes(w))
+    );
+
+    if (input.max_price) {
+      matches = matches.filter(p => p.price <= Number(input.max_price));
+    }
+
+    if (!matches.length) {
+      matches = PRODUCTS.slice().sort((a,b) => b.rating - a.rating).slice(0,3);
+    }
+
+    return {
+      results: matches.sort((a,b) => b.rating - a.rating).slice(0,3)
+    };
+  }
+
+  if (name === "get_product_info") {
+    const q = String(input.product_name || "").toLowerCase();
+    const product = PRODUCTS.find(p =>
+      p.name.toLowerCase().includes(q) || q.includes(p.name.toLowerCase())
+    );
+    if (!product) return { error: `No product found matching "${input.product_name}".` };
+    return product;
+  }
+
+  if (name === "save_customer_memory") {
+    const mem = loadMemory();
+    mem[input.key] = input.value;
+    saveMemory(mem);
+    return { saved: true };
+  }
+
+  if (name === "get_customer_memory") {
+    return loadMemory();
+  }
+
+  return { error: "Unknown tool." };
+}
+
+/* -------------------------
+   UI helpers
+   ------------------------- */
+const chatEl = document.getElementById("chat");
+const inputEl = document.getElementById("input");
+const sendBtn = document.getElementById("sendBtn");
+
+let uiHistory = loadHistory();
+
+function scrollBottom() {
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function addUserBubble(text, persist = true) {
+  const row = document.createElement("div");
+  row.className = "row user";
+  row.innerHTML = `<div class="bubble"></div>`;
+  row.querySelector(".bubble").textContent = text;
+  chatEl.appendChild(row);
+  scrollBottom();
+
+  if (persist) {
+    uiHistory.push({ role: "user", content: text });
+    saveHistory();
+  }
+}
+
+function addAgentText(text, persist = true) {
+  const row = document.createElement("div");
+  row.className = "row agent";
+  row.innerHTML = `<div class="bubble"></div>`;
+  row.querySelector(".bubble").textContent = text;
+  chatEl.appendChild(row);
+  scrollBottom();
+
+  if (persist) {
+    uiHistory.push({ role: "assistant", content: text });
+    saveHistory();
+  }
+  return row;
+}
+
+function addToolChip(name) {
+  const row = document.createElement("div");
+  row.className = "row agent";
+  row.innerHTML = `<div class="tool-chip"><span class="spin"></span>calling tool: ${name}()</div>`;
+  chatEl.appendChild(row);
+  scrollBottom();
+  return row;
+}
+
+function settleToolChip(row, name) {
+  row.innerHTML = `<div class="tool-chip">✓ used ${name}()</div>`;
+}
+
+function addOrderCard(o) {
+  const row = document.createElement("div");
+  row.className = "row agent";
+  const cls = o.status === "Processing" ? "pending" : "ok";
+
+  row.innerHTML = `
+    <div class="card">
+      <div class="card-hd">Order status</div>
+      <div class="card-body">
+        <div class="card-line"><span>Order ID</span><b>${o.order_id}</b></div>
+        <div class="card-line"><span>Item</span><b>${o.item}</b></div>
+        <div class="card-line"><span>Status</span><span class="status-pill ${cls}">${o.status}</span></div>
+        <div class="card-line"><span>Expected</span><b>${o.expected}</b></div>
+      </div>
+    </div>`;
+  chatEl.appendChild(row);
+  scrollBottom();
+}
+
+function addProductGrid(products, bestName) {
+  const row = document.createElement("div");
+  row.className = "row agent";
+  const cards = products.map(p => `
+    <div class="prod-card ${p.name === bestName ? "best" : ""}">
+      ${p.name === bestName ? '<div class="prod-tag">BEST MATCH</div>' : ""}
+      <div class="prod-thumb"></div>
+      <div class="prod-name">${p.name}</div>
+      <div class="prod-price">₹${p.price}</div>
+    </div>`).join("");
+
+  row.innerHTML = `<div class="prod-grid">${cards}</div>`;
+  chatEl.appendChild(row);
+  scrollBottom();
+}
+
+function addThinking() {
+  const row = document.createElement("div");
+  row.className = "think";
+  row.innerHTML = `<span></span><span></span><span></span>`;
+  chatEl.appendChild(row);
+  scrollBottom();
+  return row;
+}
+
+/* -------------------------
+   Intent understanding
+   ------------------------- */
+function extractOrderId(text) {
+  const match = text.match(/\bORD-\d{5}\b/i);
+  return match ? match[0].toUpperCase() : null;
+}
+
+function extractBudget(text) {
+  const match = text.match(/(?:under|below|less than|within)\s*[₹rs.\s]*([0-9,]+)/i);
+  return match ? Number(match[1].replace(/,/g, "")) : null;
+}
+
+function understandIntent(text) {
+  const t = text.toLowerCase();
+  const orderId = extractOrderId(text);
+
+  if (/(where|track|status|arrive|delivery|shipped|deliver)/.test(t) && orderId) {
+    return { type: "order_status", orderId };
+  }
+
+  if (/(return|refund|send back|doesn't fit|dont fit|does not fit)/.test(t)) {
+    return { type: "return", orderId };
+  }
+
+  if (/(recommend|suggest|looking for|need a|find me|best .* for)/.test(t)) {
+    return { type: "recommendation", budget: extractBudget(text) };
+  }
+
+  if (/(tell me about|details|specification|features|price of|how much)/.test(t)) {
+    return { type: "product_info" };
+  }
+
+  if (/(my name is|i am|i'm)/.test(t)) {
+    return { type: "memory" };
+  }
+
+  return { type: "general" };
+}
+
+function guessProductName(text) {
+  const t = text.toLowerCase();
+  const product = PRODUCTS.find(p =>
+    t.includes(p.name.toLowerCase()) ||
+    p.name.toLowerCase().split(" ").some(w => w.length > 5 && t.includes(w))
+  );
+  return product ? product.name : null;
+}
+
+/* -------------------------
+   Agentic workflow
+   ------------------------- */
+async function runAgent(userText) {
+  sendBtn.disabled = true;
+
+  const intent = understandIntent(userText);
+  const memory = loadMemory();
+
+  // Memory check: remember the order currently being discussed.
+  const orderId = intent.orderId || extractOrderId(userText);
+  if (orderId && ORDERS[orderId]) {
+    await runTool("save_customer_memory", {
+      key: "order_in_focus",
+      value: orderId
+    });
+  }
+
+  const thinkRow = addThinking();
+  await new Promise(resolve => setTimeout(resolve, 300));
+  thinkRow.remove();
+
+  let toolName = null;
+  let toolInput = null;
+
+  if (intent.type === "order_status") {
+    toolName = "get_order_status";
+    toolInput = { order_id: intent.orderId };
+  } else if (intent.type === "return") {
+    const id = intent.orderId || memory.order_in_focus;
+    if (!id) {
+      addAgentText("Sure — I can help with the return. Please share your order ID, like ORD-30056.");
+      sendBtn.disabled = false;
+      return;
+    }
+    toolName = "initiate_return";
+    toolInput = {
+      order_id: id,
+      reason: /fit|size|small|large/i.test(userText) ? "Item doesn't fit" : userText
+    };
+  } else if (intent.type === "recommendation") {
+    toolName = "recommend_products";
+    toolInput = { query: userText };
+    if (intent.budget) toolInput.max_price = intent.budget;
+  } else if (intent.type === "product_info") {
+    const productName = guessProductName(userText);
+    if (!productName) {
+      addAgentText("Sure — tell me the product name and I'll show its details.");
+      sendBtn.disabled = false;
+      return;
+    }
+    toolName = "get_product_info";
+    toolInput = { product_name: productName };
+  }
+
+  if (toolName) {
+    const chip = addToolChip(toolName);
+    const result = await runTool(toolName, toolInput);
+    settleToolChip(chip, toolName);
+
+    if (result.error) {
+      addAgentText(result.error + " Please double-check the details and try again.");
+    } else if (toolName === "get_order_status") {
+      addOrderCard(result);
+      addAgentText(`Your ${result.item} order is currently ${result.status.toLowerCase()}. Expected delivery: ${result.expected}.`);
+    } else if (toolName === "initiate_return") {
+      if (!result.eligible) {
+        addAgentText(result.message);
+      } else {
+        addAgentText(`Yes, your return can be started. ${result.item} is eligible. Next: ${result.steps.join(" → ")}.`);
+      }
+    } else if (toolName === "recommend_products") {
+      addProductGrid(result.results, result.results[0]?.name);
+      addAgentText(`I found ${result.results.length} options that match your requirements. The highlighted one is the best match.`);
+    } else if (toolName === "get_product_info") {
+      addAgentText(`${result.name} — ₹${result.price}, rated ${result.rating}/5. ${result.desc}`);
+    }
+  } else if (intent.type === "memory") {
+    const match = userText.match(/(?:my name is|i am|i'm)\s+([a-z][a-z .'-]{1,30})/i);
+    if (match) {
+      const name = match[1].trim();
+      await runTool("save_customer_memory", { key: "name", value: name });
+      addAgentText(`Nice to meet you, ${name}! I'll remember your name for this conversation.`);
+    } else {
+      addAgentText("I can remember useful details such as your name, preferences, or the order you're discussing.");
+    }
+  } else {
+    addAgentText("Hi! I can check order status, help with returns, recommend products, or provide product details. Try one of the options above.");
+  }
+
+  sendBtn.disabled = false;
+}
+
+/* -------------------------
+   Events
+   ------------------------- */
+async function send() {
+  const text = inputEl.value.trim();
+  if (!text || sendBtn.disabled) return;
+
+  inputEl.value = "";
+  addUserBubble(text);
+  await runAgent(text);
+}
+
+sendBtn.addEventListener("click", send);
+inputEl.addEventListener("keydown", e => {
+  if (e.key === "Enter") send();
+});
+
+document.getElementById("chips").addEventListener("click", e => {
+  const chip = e.target.closest(".chip");
+  if (!chip) return;
+  inputEl.value = chip.dataset.msg;
+  send();
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  localStorage.removeItem(MEMORY_KEY);
+  localStorage.removeItem(HISTORY_KEY);
+  uiHistory = [];
+  chatEl.innerHTML = "";
+  renderMemoryNote({});
+  addAgentText("Memory cleared. Hi, I'm ShopAssist — how can I help with your order, a return, or finding a product today?");
+});
+
+/* -------------------------
+   Init
+   ------------------------- */
+(function init() {
+  renderMemoryNote(loadMemory());
+
+  const history = loadHistory();
+  if (history.length) {
+    for (const m of history) {
+      if (m.role === "user") addUserBubble(m.content, false);
+      if (m.role === "assistant") addAgentText(m.content, false);
+    }
+  } else {
+    addAgentText("Hi, I'm ShopAssist 👋 I can check an order status, start a return, recommend products, or answer product questions. What do you need help with?", true);
+  }
+})();
+</script>
+</body>
+</html>
